@@ -1,0 +1,27 @@
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<style>
+body {
+    max-width: 1200px;
+}
+.content {
+    justify-content: center;
+    align-items: center;
+}
+.sunburst {
+    max-width: 800px;
+    width: 90%;
+}
+.table {
+    width: 90%;
+    padding: 30px;
+}
+</style>
+<body>
+    <H1>{{organization}}</H1>
+    <div class="content">
+        <div class='sunburst'>{{sunburst_figure_html}}</div>
+        <div class='table'>{{summary_table_html}}</div>
+    </div>
+</body>
