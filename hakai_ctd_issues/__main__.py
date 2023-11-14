@@ -48,9 +48,12 @@ def get_errors():
         try:
             error = json.loads(error)["message"]
             if error.startswith("No lat/long information available for station "):
-                return "Unknown reference station position"
+                return "Unknown reference station"
             return f'"{error}"'
         except:
+            if len(error)> 300:
+                error = error[:300]
+
             return f'"{error}"'
 
     response = client.get(
@@ -134,6 +137,7 @@ def main(output="ctd-issues.html"):
             path=["work_area", "process_error_message_short"],
             values="count",
             color="count",
+            height=500
         ).to_html(full_html=False, include_plotlyjs="cdn")
 
         summary_table_html = df_org[
@@ -144,6 +148,8 @@ def main(output="ctd-issues.html"):
 
         organization_summary = environment.get_template("issue_summary.html")
         summary_page = organization_summary.render(
+            total_errors = len(df_org),
+            affected_hakai_ids = df_org['count'].sum(),
             organization=organization,
             sunburst_figure_html=sunburst_figure_html,
             summary_table_html=summary_table_html,

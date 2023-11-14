@@ -12,14 +12,20 @@ body {
 .sunburst {
     max-width: 800px;
     width: 90%;
+    max-height: 500px !important;
 }
 .table {
     width: 90%;
     padding: 30px;
 }
+.organization-title {
+    font-size: 30px;
+    font-weight: bold;
+}
 </style>
 <body>
-    <H1>{{organization}}</H1>
+    <div class="organization-title">{{organization}}</div>
+    <div class="header">{{total_errors}} different issues encountered is affecting a total of {{affected_hakai_ids}} hakai_ids. </div>
     <div class="content">
         <div class='sunburst'>{{sunburst_figure_html}}</div>
         <div class='table'>{{summary_table_html}}</div>
