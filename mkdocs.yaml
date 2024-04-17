@@ -1,0 +1,20 @@
+site_name: Hakai CTD Issues
+site_url: http://ctd-issues.hakai.org
+nav:
+  - Home: index.md
+  - Hakai: hakai/index.md
+  - Nature Trust: nature_trust/index.md
+  - Skeena Fisheries Commission: sfc/index.md
+    
+theme:
+  name: material
+  favicon: assets/favicon.png
+  logo: assets/logo.png
+  features:
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.top
+
+
+extra_css:
+  - assets/extra.css

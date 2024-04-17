@@ -27,6 +27,12 @@ CTD_CASTS_FIELDS = [
     "hakai_id",
     "process_error",
 ]
+ORGANIZATION_LABELS = {
+    "hakai": "Hakai Institute",
+    "nature_trust": "Nature Trust",
+    "sfc": "Skeena Fisheries Commission",
+    "parks_canada": "Parks Canada",
+}
 
 ISSUE_TEMPLATE = """
 ---
@@ -56,7 +62,7 @@ def get_errors():
             error = json.loads(error)["message"]
             if error.startswith("No lat/long information available for station "):
                 return "Unknown reference station"
-            return f'"{error}"'
+            return f'"{error}"'.replace('\n',' ')
         except:
             if len(error) > 300:
                 error = error[:300]
@@ -69,7 +75,7 @@ def get_errors():
     )
     response.raise_for_status()
     errors = pd.DataFrame(response.json())
-    errors["process_error_message"] = errors["process_error"].apply(_get_error_message)
+    errors["process_error_message"] = errors["process_error"].apply(_get_error_message).str.replace('\n',' ')
     return errors
 
 
@@ -108,7 +114,7 @@ def get_summarized_errors(errors):
 @click.command()
 @click.option(
     "--output",
-    default=Path("output"),
+    default=Path("docs"),
     help="Output directory",
     type=click.Path(file_okay=False, dir_okay=True),
 )
@@ -148,12 +154,12 @@ def main(output="output"):
     issues_folder = output / "issues"
     issues_folder.mkdir(parents=True, exist_ok=True)
 
-    for id, issue in summarized_errors.iterrows():
-        (issues_folder / f"issue-{id}.md").write_text(issue["issues_md"])
+    # for id, issue in summarized_errors.iterrows():
+    #     (issues_folder / f"issue-{id}.md").write_text(issue["issues_md"])
 
     # Generate summary page per organization
     for organization, df_org in summarized_errors.groupby("organization"):
-        organization = organization.replace(" ", "_")
+        organization = organization.replace(" ", "_").lower()
         org_dir = output / organization
         org_dir.mkdir(parents=True, exist_ok=True)
 
@@ -182,15 +188,15 @@ def main(output="output"):
             ["work_area", "cast_type", "process_error_message", "count", "hakai_ids"]
         ]
 
-        organization_summary = environment.get_template("issue_summary.html")
+        organization_summary = environment.get_template("issue_summary.md.jinja")
         summary_page = organization_summary.render(
             total_errors=len(df_org),
             affected_hakai_ids=df_org["count"].sum(),
-            organization=organization,
+            organization=ORGANIZATION_LABELS.get(organization,organization),
             figure=figure,
             summary_table=summary_table,
         )
-        (org_dir / "index.html").write_text(summary_page)
+        (org_dir / "index.md").write_text(summary_page)
 
 
 if __name__ == "__main__":
