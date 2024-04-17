@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
 env:
-    HAKAI_API_CREDENTIALS: ${{ secrets.CI_TOKEN }}
+    HAKAI_API_CREDENTIALS: ${{ secrets.HAKAI_API_CREDENTIALS }}
 jobs:
   deploy:
     runs-on: ubuntu-latest
