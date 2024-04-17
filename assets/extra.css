@@ -1,0 +1,18 @@
+:root {
+    /* stylelint-disable */
+    --md-primary-fg-color:        #aa2025;
+    --md-primary-fg-color--light: #b17272;
+    --md-primary-fg-color--dark:  #5b1b1f;
+    /* stylelint-enable */
+  }
+
+/* .md-typeset__scrollwrap {
+    display: table;
+    overflow: auto;
+    width: auto;
+    max-width: 100%;
+} */
+
+.md-grid {
+    max-width: 1440px; 
+  }
