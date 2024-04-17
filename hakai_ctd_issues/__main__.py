@@ -4,19 +4,26 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+from dotenv import load_dotenv
 from hakai_api import Client
 from jinja2 import Environment, FileSystemLoader
+from loguru import logger
+import click
+
+load_dotenv(".env")
 
 environment = Environment(loader=FileSystemLoader("hakai_ctd_issues/templates/"))
 
 
 client = Client()
 site = Path("site")
+issues_path = Path("issues")
 CTD_CASTS_FIELDS = [
     "organization",
     "work_area",
     "station",
     "device_model",
+    "cast_type",
     "hakai_id",
     "process_error",
 ]
@@ -51,7 +58,7 @@ def get_errors():
                 return "Unknown reference station"
             return f'"{error}"'
         except:
-            if len(error)> 300:
+            if len(error) > 300:
                 error = error[:300]
 
             return f'"{error}"'
@@ -77,12 +84,12 @@ def get_summarized_errors(errors):
         return items
 
     summarized_errors = errors.groupby(
-        ["organization", "work_area", "process_error_message"]
+        ["organization", "work_area", "cast_type", "process_error_message"]
     ).agg(
         {
             "hakai_id": [_get_subset, "count"],
             "process_error": "first",
-            "station": list,
+            "station": set,
         }
     )
     summarized_errors.columns = ["hakai_ids", "count", "process_error", "stations"]
@@ -91,8 +98,9 @@ def get_summarized_errors(errors):
     )
     return summarized_errors.reset_index()
 
-
-def main(output="ctd-issues.html"):
+@click.command()
+@click.option("--output", default=Path("output"), help="Output directory", type=click.Path(file_okay=False, dir_okay=True))
+def main(output="output"):
     def _get_subset(items, max_items=4):
         if isinstance(items, (list, pd.Series)):
             items = list(items)
@@ -106,11 +114,13 @@ def main(output="ctd-issues.html"):
         return ISSUE_TEMPLATE.format(**issue.to_dict())
 
     errors = get_errors()
+    logger.info(f"Found {len(errors)} errors")
     summarized_errors = get_summarized_errors(errors)
     summarized_errors["process_error_message_short"] = summarized_errors[
         "process_error_message"
     ].apply(lambda x: re.sub('[\{"\]', "", x.split(".")[0]) if x else x)
     summarized_errors["issues_md"] = summarized_errors.apply(_get_issue_md, axis=1)
+    logger.info(f"Summarized into {len(summarized_errors)} errors")
 
     # Load existing github issues
 
@@ -120,36 +130,40 @@ def main(output="ctd-issues.html"):
 
     # Update existing issues
 
-    # Generate github new issues
-    if not site.exists():
-        site.mkdir(parents=True, exist_ok=True)
+    # Generate directories if doesn't exist
+    output = Path(output)
+    output.mkdir(parents=True, exist_ok=True)
+    issues_folder = output / "issues"
+    issues_folder.mkdir(parents=True, exist_ok=True)
+
     for id, issue in summarized_errors.iterrows():
-        (Path("issues") / f"issue-{id}.md").write_text(issue["issues_md"])
+        ( issues_folder / f"issue-{id}.md").write_text(issue["issues_md"])
 
     # Generate summary page per organization
     for organization, df_org in summarized_errors.groupby("organization"):
         organization = organization.replace(" ", "_")
-        org_dir = site / organization
+        org_dir = output / organization
         org_dir.mkdir(parents=True, exist_ok=True)
 
         sunburst_figure_html = px.sunburst(
             df_org,
-            path=["work_area", "process_error_message_short"],
+            path=["work_area", "cast_type", "process_error_message_short"],
             values="count",
             color="count",
-            height=500
+            height=500,
         ).to_html(full_html=False, include_plotlyjs="cdn")
 
-        summary_table_html = df_org[
-            ["work_area", "process_error_message", "count"]
-        ].to_html(
-            index=False, classes=["table-bordered", "table-striped", "table-hover"]
+        summary_table_html = (
+            df_org[["work_area", "cast_type", "process_error_message", "count","hakai_ids"]]
+            .to_html(
+                index=False, classes=["table-bordered", "table-striped", "table-hover"]
+            )
         )
 
         organization_summary = environment.get_template("issue_summary.html")
         summary_page = organization_summary.render(
-            total_errors = len(df_org),
-            affected_hakai_ids = df_org['count'].sum(),
+            total_errors=len(df_org),
+            affected_hakai_ids=df_org["count"].sum(),
             organization=organization,
             sunburst_figure_html=sunburst_figure_html,
             summary_table_html=summary_table_html,

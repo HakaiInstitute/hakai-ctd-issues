@@ -163,3 +163,4 @@ issues/**
 sumburs.html
 ctd-issues.html
 .DS_Store
+output/*
