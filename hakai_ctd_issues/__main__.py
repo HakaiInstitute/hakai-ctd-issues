@@ -2,13 +2,13 @@ import json
 import re
 from pathlib import Path
 
+import click
 import pandas as pd
 import plotly.express as px
 from dotenv import load_dotenv
 from hakai_api import Client
 from jinja2 import Environment, FileSystemLoader
 from loguru import logger
-import click
 
 load_dotenv(".env")
 
@@ -20,7 +20,7 @@ site = Path("site")
 issues_path = Path("issues")
 CTD_CASTS_FIELDS = [
     "organization",
-    "work_area",
+    "work_area","cruise",
     "station",
     "device_model",
     "cast_type",
@@ -83,6 +83,12 @@ def get_summarized_errors(errors):
             return items
         return items
 
+    errors["work_area"] = errors.apply(
+        lambda x: f"{x['work_area']}[cruise={x['cruise']}]"
+        if x["organization"] == "NATURE TRUST"
+        else x["work_area"],
+        axis=1,
+    )
     summarized_errors = errors.groupby(
         ["organization", "work_area", "cast_type", "process_error_message"]
     ).agg(
@@ -98,8 +104,14 @@ def get_summarized_errors(errors):
     )
     return summarized_errors.reset_index()
 
+
 @click.command()
-@click.option("--output", default=Path("output"), help="Output directory", type=click.Path(file_okay=False, dir_okay=True))
+@click.option(
+    "--output",
+    default=Path("output"),
+    help="Output directory",
+    type=click.Path(file_okay=False, dir_okay=True),
+)
 def main(output="output"):
     def _get_subset(items, max_items=4):
         if isinstance(items, (list, pd.Series)):
@@ -137,7 +149,7 @@ def main(output="output"):
     issues_folder.mkdir(parents=True, exist_ok=True)
 
     for id, issue in summarized_errors.iterrows():
-        ( issues_folder / f"issue-{id}.md").write_text(issue["issues_md"])
+        (issues_folder / f"issue-{id}.md").write_text(issue["issues_md"])
 
     # Generate summary page per organization
     for organization, df_org in summarized_errors.groupby("organization"):
@@ -145,19 +157,31 @@ def main(output="output"):
         org_dir = output / organization
         org_dir.mkdir(parents=True, exist_ok=True)
 
-        sunburst_figure_html = px.sunburst(
-            df_org,
-            path=["work_area", "cast_type", "process_error_message_short"],
-            values="count",
-            color="count",
-            height=500,
-        ).to_html(full_html=False, include_plotlyjs="cdn")
-
-        summary_table_html = (
-            df_org[["work_area", "cast_type", "process_error_message", "count","hakai_ids"]]
-            .to_html(
-                index=False, classes=["table-bordered", "table-striped", "table-hover"]
+        figure_html = (
+            px.histogram(
+                df_org,
+                x="process_error_message_short",
+                y="count",
+                color="work_area",
+                pattern_shape="cast_type",
+                height=500,
+                width=1000,
             )
+            .update_layout(xaxis=dict(tickangle=10))
+            .update_xaxes(
+                tickvals=df_org["process_error_message_short"].unique(),
+                ticktext=[
+                    label[:45] + "..." if len(label) > 45 else label
+                    for label in df_org["process_error_message_short"].unique()
+                ],
+            )
+            .to_html(full_html=False, include_plotlyjs="cdn")
+        )
+
+        summary_table_html = df_org[
+            ["work_area", "cast_type", "process_error_message", "count", "hakai_ids"]
+        ].to_html(
+            index=False, classes=["table-bordered", "table-striped", "table-hover"]
         )
 
         organization_summary = environment.get_template("issue_summary.html")
@@ -165,7 +189,7 @@ def main(output="output"):
             total_errors=len(df_org),
             affected_hakai_ids=df_org["count"].sum(),
             organization=organization,
-            sunburst_figure_html=sunburst_figure_html,
+            figure_html=figure_html,
             summary_table_html=summary_table_html,
         )
         (org_dir / "index.html").write_text(summary_page)

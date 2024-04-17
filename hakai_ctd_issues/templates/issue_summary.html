@@ -9,12 +9,12 @@ body {
     justify-content: center;
     align-items: center;
 }
-.sunburst {
+#figure {
     max-width: 800px;
-    width: 90%;
+    width: 100%;
     max-height: 500px !important;
 }
-.table {
+#table {
     width: 90%;
     padding: 30px;
 }
@@ -27,7 +27,7 @@ body {
     <div class="organization-title">{{organization}}</div>
     <div class="header">{{total_errors}} different issues encountered is affecting a total of {{affected_hakai_ids}} hakai_ids. </div>
     <div class="content">
-        <div class='sunburst'>{{sunburst_figure_html}}</div>
-        <div class='table'>{{summary_table_html}}</div>
+        <div id='figure'>{{figure_html}}</div>
+        <div id='table'>{{summary_table_html}}</div>
     </div>
 </body>
