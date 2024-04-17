@@ -27,7 +27,9 @@ body {
     <div class="organization-title">{{organization}}</div>
     <div class="header">{{total_errors}} different issues encountered is affecting a total of {{affected_hakai_ids}} hakai_ids. </div>
     <div class="content">
-        <div id='figure'>{{figure_html}}</div>
-        <div id='table'>{{summary_table_html}}</div>
+        <div id='figure'>{{figure.to_html(full_html=False, include_plotlyjs="cdn")}}</div>
+        <div id='table'>{{summary_table.to_html(
+            index=False, classes=["table-bordered", "table-striped", "table-hover"]
+        )}}</div>
     </div>
 </body>

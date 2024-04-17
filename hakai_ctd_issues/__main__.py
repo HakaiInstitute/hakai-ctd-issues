@@ -157,7 +157,7 @@ def main(output="output"):
         org_dir = output / organization
         org_dir.mkdir(parents=True, exist_ok=True)
 
-        figure_html = (
+        figure = (
             px.histogram(
                 df_org,
                 x="process_error_message_short",
@@ -175,22 +175,20 @@ def main(output="output"):
                     for label in df_org["process_error_message_short"].unique()
                 ],
             )
-            .to_html(full_html=False, include_plotlyjs="cdn")
+            
         )
 
-        summary_table_html = df_org[
+        summary_table = df_org[
             ["work_area", "cast_type", "process_error_message", "count", "hakai_ids"]
-        ].to_html(
-            index=False, classes=["table-bordered", "table-striped", "table-hover"]
-        )
+        ]
 
         organization_summary = environment.get_template("issue_summary.html")
         summary_page = organization_summary.render(
             total_errors=len(df_org),
             affected_hakai_ids=df_org["count"].sum(),
             organization=organization,
-            figure_html=figure_html,
-            summary_table_html=summary_table_html,
+            figure=figure,
+            summary_table=summary_table,
         )
         (org_dir / "index.html").write_text(summary_page)
 
