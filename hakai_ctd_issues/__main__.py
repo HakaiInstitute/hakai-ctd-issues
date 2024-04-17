@@ -89,12 +89,6 @@ def get_summarized_errors(errors):
             return items
         return items
 
-    errors["work_area"] = errors.apply(
-        lambda x: f"{x['work_area']}[cruise={x['cruise']}]"
-        if x["organization"] == "NATURE TRUST"
-        else x["work_area"],
-        axis=1,
-    )
     summarized_errors = errors.groupby(
         ["organization", "work_area", "cast_type", "process_error_message"]
     ).agg(
